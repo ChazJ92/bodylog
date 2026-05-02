@@ -1,13 +1,11 @@
 /**
- * Phase 1 (Dexie schema v2) — data layer only.
+ * Phase 2 (Dexie schema v2) — data layer only.
  *
- * Transitional shape until Phase 2:
- * - `Profile.id` and `Settings.id` are unions of new + legacy literals so the
- *   existing services in src/services/ keep type-checking without edits in
- *   this phase. Phase 2 will narrow them to "primary" / "local".
- * - `Checkin.dateKey` and `Photo.dateKey` are optional so existing service
- *   writes that don't yet populate them keep type-checking. Phase 2 will
- *   make them required and update the writers.
+ * Canonical state:
+ * - `Profile.id` is fixed to "primary"; legacy "me" is migrated by v1 -> v2.
+ * - `Settings.id` is fixed to "local"; legacy "app" is migrated by v1 -> v2.
+ * - `Checkin.dateKey` and `Photo.dateKey` are required. All write paths
+ *   (services + import + v1 -> v2 migration) populate them.
  *
  * Migration policy:
  * - Schema v1 is preserved untouched.
@@ -15,18 +13,19 @@
  *   new ids, backfills `dateKey`, and creates/bumps the `appMeta` row.
  * - Built-in measurement types are seeded missing-only on existing DBs so
  *   legacy ambiguous types (`hip`, `arm`, `thigh`) are preserved.
+ *
+ * Bootstrap/seeding lives in `src/services/bootstrapService.ts`. This module
+ * is intentionally schema-only.
  */
 import Dexie, { type Table, type Transaction } from "dexie";
 import { dateKeyFromRecordedAt } from "./dateKey";
-import { BUILT_IN_TYPES, ensureBuiltInMeasurementTypes } from "./builtIns";
 
 export type Sex = "male" | "female" | "other";
 export type WeightUnit = "kg" | "lb";
 export type LengthUnit = "cm" | "in";
 
 export interface Profile {
-  // Transitional union (Phase 1). Phase 2 will narrow to "primary".
-  id: "primary" | "me";
+  id: "primary";
   sex: Sex;
   heightCm?: number;
   birthYear?: number;
@@ -34,8 +33,7 @@ export interface Profile {
 }
 
 export interface Settings {
-  // Transitional union (Phase 1). Phase 2 will narrow to "local".
-  id: "local" | "app";
+  id: "local";
   weightUnit: WeightUnit;
   lengthUnit: LengthUnit;
   createdAt: number;
@@ -50,8 +48,7 @@ export interface AppMeta {
 export interface Checkin {
   id: string;
   recordedAt: number; // ms since epoch
-  // Phase 1: optional. Phase 2 will make required and have services populate.
-  dateKey?: string;
+  dateKey: string; // local YYYY-MM-DD derived from recordedAt
   weightKg?: number;
   bodyFatPct?: number; // user-entered, 0-100
   notes?: string;
@@ -84,8 +81,7 @@ export interface Photo {
   id: string;
   checkinId?: string;
   recordedAt: number;
-  // Phase 1: optional. Phase 2 will make required and have services populate.
-  dateKey?: string;
+  dateKey: string; // local YYYY-MM-DD derived from recordedAt
   poseTag: PoseTag;
   blob: Blob;
   width: number;
@@ -98,8 +94,8 @@ export interface Photo {
 }
 
 class BodyTrackDB extends Dexie {
-  profile!: Table<Profile, "primary" | "me">;
-  settings!: Table<Settings, "local" | "app">;
+  profile!: Table<Profile, "primary">;
+  settings!: Table<Settings, "local">;
   appMeta!: Table<AppMeta, "meta">;
   checkins!: Table<Checkin, string>;
   measurementTypes!: Table<MeasurementType, string>;
@@ -246,60 +242,7 @@ async function upgradeV1ToV2(tx: Transaction): Promise<void> {
   }
 
   // 6. Measurement types are intentionally not modified here. Legacy ids
-  //    (hip, arm, thigh, etc.) are preserved; ensureSeeded() will additively
-  //    add any missing canonical built-ins after the upgrade completes.
-}
-
-// ---------------------------------------------------------------------------
-// Seeding (runs once per app load, after upgrades)
-// ---------------------------------------------------------------------------
-
-let seedPromise: Promise<void> | null = null;
-export function ensureSeeded(): Promise<void> {
-  if (!seedPromise) {
-    seedPromise = (async () => {
-      const now = Date.now();
-
-      const settings = await db.settings.get("local");
-      if (!settings) {
-        await db.settings.put({
-          id: "local",
-          weightUnit: "kg",
-          lengthUnit: "cm",
-          createdAt: now,
-          updatedAt: now,
-        });
-      }
-
-      const profile = await db.profile.get("primary");
-      if (!profile) {
-        await db.profile.put({ id: "primary", sex: "other", updatedAt: now });
-      }
-
-      // Note: until Phase 2 fixes the writers, legacy services may still
-      // create or reference old singleton ids (`me` / `app`). That is a
-      // tolerated temporary compatibility state for this phase only and is
-      // not the final solution.
-
-      const typeCount = await db.measurementTypes.count();
-      if (typeCount === 0) {
-        // Fast path: fresh DB gets exactly the canonical Phase 1 set.
-        await db.measurementTypes.bulkPut(
-          BUILT_IN_TYPES.map((t) => ({ ...t, createdAt: now })),
-        );
-      } else {
-        // Existing DB: additively add only canonical built-ins that are
-        // missing. Never wipes, never overwrites legacy rows.
-        await ensureBuiltInMeasurementTypes(db.measurementTypes);
-      }
-
-      const meta = await db.appMeta.get("meta");
-      if (!meta) {
-        await db.appMeta.put({ id: "meta", schemaVersion: 2 });
-      } else if (typeof meta.schemaVersion !== "number" || meta.schemaVersion < 2) {
-        await db.appMeta.put({ ...meta, id: "meta", schemaVersion: 2 });
-      }
-    })();
-  }
-  return seedPromise;
+  //    (hip, arm, thigh, etc.) are preserved; bootstrapService.ensureAppReady()
+  //    will additively add any missing canonical built-ins after the upgrade
+  //    completes.
 }

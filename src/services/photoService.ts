@@ -1,6 +1,11 @@
 import imageCompression from "browser-image-compression";
 import { db, type Photo, type PoseTag } from "@/db/db";
+import { dateKeyFromRecordedAt } from "@/db/dateKey";
 import { newId } from "@/lib/ids";
+import {
+  ALLOWED_PHOTO_MIME,
+  photoPreCompressionSchema,
+} from "@/lib/validationSchemas";
 
 const COMPRESS_OPTS = {
   maxSizeMB: 0.8,
@@ -31,18 +36,40 @@ export async function addPhoto(args: {
   recordedAt?: number;
   checkinId?: string;
 }): Promise<Photo> {
+  // Service-boundary validation: explicit allowed mime + max size before
+  // we hand the file to the compressor (so we never spin the worker on
+  // payloads we'd reject anyway).
+  const parsed = photoPreCompressionSchema.safeParse({
+    mimeType: args.file.type,
+    byteSize: args.file.size,
+  });
+  if (!parsed.success) {
+    if (!ALLOWED_PHOTO_MIME.includes(args.file.type as typeof ALLOWED_PHOTO_MIME[number])) {
+      throw new Error(
+        `Unsupported image type${args.file.type ? `: ${args.file.type}` : ""}. Allowed: JPEG, PNG, WebP.`,
+      );
+    }
+    throw new Error("Photo exceeds the 10 MB limit. Try a smaller file.");
+  }
+
   const compressed = await imageCompression(args.file, COMPRESS_OPTS);
   const { width, height } = await readImageDimensions(compressed);
+  // Compression deliberately converts to JPEG (see COMPRESS_OPTS.fileType);
+  // store that consistently. Fall back if the compressor produced an empty
+  // type for any reason.
+  const mimeType = compressed.type || "image/jpeg";
+  const recordedAt = args.recordedAt ?? Date.now();
   const photo: Photo = {
     id: newId(),
     checkinId: args.checkinId,
-    recordedAt: args.recordedAt ?? Date.now(),
+    recordedAt,
+    dateKey: dateKeyFromRecordedAt(recordedAt),
     poseTag: args.poseTag,
     blob: compressed,
     width,
     height,
     byteSize: compressed.size,
-    mimeType: compressed.type || "image/jpeg",
+    mimeType,
     createdAt: Date.now(),
   };
   await db.photos.put(photo);
