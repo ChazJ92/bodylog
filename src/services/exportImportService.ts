@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { db } from "@/db/db";
+import { dateKeyFromRecordedAt } from "@/db/dateKey";
 
 const SCHEMA_VERSION = 1;
 
@@ -91,13 +92,26 @@ export async function importAll(json: string): Promise<{ replaced: boolean }> {
       if (parsed.profile.length) await db.profile.bulkPut(parsed.profile as never);
       if (parsed.settings.length) await db.settings.bulkPut(parsed.settings as never);
       if (parsed.measurementTypes.length) await db.measurementTypes.bulkPut(parsed.measurementTypes as never);
-      if (parsed.checkins.length) await db.checkins.bulkPut(parsed.checkins as never);
+      if (parsed.checkins.length) {
+        // Phase 2: backfill dateKey on import so the required field is always
+        // present, even when importing an older export.
+        const restoredCheckins = (parsed.checkins as Array<Record<string, unknown>>).map((c) => ({
+          ...c,
+          dateKey:
+            typeof c.dateKey === "string" && c.dateKey
+              ? c.dateKey
+              : dateKeyFromRecordedAt(c.recordedAt as number),
+        }));
+        await db.checkins.bulkPut(restoredCheckins as never);
+      }
       if (parsed.measurements.length) await db.measurements.bulkPut(parsed.measurements as never);
       if (parsed.photos.length) {
         const restored = parsed.photos.map((p) => ({
           id: p.id,
           checkinId: p.checkinId,
           recordedAt: p.recordedAt,
+          // Phase 2: backfill dateKey on import (older exports may lack it).
+          dateKey: dateKeyFromRecordedAt(p.recordedAt),
           poseTag: p.poseTag as never,
           width: p.width,
           height: p.height,

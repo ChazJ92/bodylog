@@ -14,7 +14,11 @@ import {
   weightSuffix,
 } from "@/lib/units";
 import { fromDateInputValue, toDateInputValue } from "@/lib/format";
-import { RANGES, inRange } from "@/lib/validation";
+import {
+  RANGES,
+  measurementValueSchema,
+  checkinPayloadSchema,
+} from "@/lib/validationSchemas";
 
 type FormState = {
   recordedAt: string;
@@ -79,26 +83,56 @@ export default function CheckIn() {
 
   const validate = (): { ok: boolean; errs: Record<string, string> } => {
     const errs: Record<string, string> = {};
+    let weightKg: number | undefined;
+    let bodyFatPct: number | undefined;
+
     if (form.weight.trim()) {
       const w = Number(form.weight);
-      if (!Number.isFinite(w)) errs.weight = "Enter a number";
-      else {
-        const kg = fromDisplayWeight(w, wUnit);
-        if (!inRange(kg, RANGES.weightKg)) errs.weight = `Out of range (${RANGES.weightKg.min}–${RANGES.weightKg.max} kg)`;
+      if (!Number.isFinite(w)) {
+        errs.weight = "Enter a number";
+      } else {
+        weightKg = fromDisplayWeight(w, wUnit);
       }
     }
     if (form.bodyFat.trim()) {
       const bf = Number(form.bodyFat);
-      if (!Number.isFinite(bf) || !inRange(bf, RANGES.bodyFatPct)) errs.bodyFat = "1–75%";
+      if (!Number.isFinite(bf)) errs.bodyFat = "Enter a number";
+      else bodyFatPct = bf;
     }
+
+    // Run the centralized schema once for the check-in payload so error
+    // messages align with the canonical spec (2–80% body fat, 20–400 kg
+    // weight, 500-char notes max).
+    const payload = checkinPayloadSchema.safeParse({
+      recordedAt: fromDateInputValue(form.recordedAt),
+      weightKg,
+      bodyFatPct,
+      notes: form.notes,
+    });
+    if (!payload.success) {
+      for (const issue of payload.error.issues) {
+        const field = issue.path[0];
+        if (field === "weightKg" && !errs.weight) {
+          errs.weight = `Out of range (${RANGES.weightKg.min}–${RANGES.weightKg.max} kg)`;
+        } else if (field === "bodyFatPct" && !errs.bodyFat) {
+          errs.bodyFat = `${RANGES.bodyFatPctManual.min}–${RANGES.bodyFatPctManual.max}%`;
+        } else if (field === "notes") {
+          errs.notes = `Max ${RANGES.notesMaxLen} characters`;
+        }
+      }
+    }
+
     for (const [tid, raw] of Object.entries(form.measurements)) {
       if (!raw.trim()) continue;
       const v = Number(raw);
       if (!Number.isFinite(v)) {
         errs[`m_${tid}`] = "Number";
-      } else {
-        const cm = fromDisplayLength(v, lUnit);
-        if (!inRange(cm, RANGES.measurementCm)) errs[`m_${tid}`] = "Out of range";
+        continue;
+      }
+      const cm = fromDisplayLength(v, lUnit);
+      const r = measurementValueSchema.safeParse(cm);
+      if (!r.success) {
+        errs[`m_${tid}`] = `${RANGES.measurementCm.min}–${RANGES.measurementCm.max} cm`;
       }
     }
     return { ok: Object.keys(errs).length === 0, errs };
@@ -222,7 +256,7 @@ export default function CheckIn() {
         </div>
       </section>
 
-      <Field label="Notes" htmlFor="notes">
+      <Field label="Notes" htmlFor="notes" error={errors.notes}>
         <textarea
           id="notes"
           rows={3}

@@ -3,7 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ensureSeeded } from "@/db/db";
+import { ensureAppReady } from "@/services/bootstrapService";
 import AppLayout from "@/components/AppLayout";
 import Home from "./pages/Home";
 import CheckIn from "./pages/CheckIn";
@@ -18,7 +18,7 @@ const App = () => {
   const [seedError, setSeedError] = useState<string | null>(null);
 
   useEffect(() => {
-    ensureSeeded()
+    ensureAppReady()
       .then(() => setReady(true))
       .catch((e) => setSeedError(e instanceof Error ? e.message : String(e)));
   }, []);

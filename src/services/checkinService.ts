@@ -1,5 +1,7 @@
 import { db, type Checkin } from "@/db/db";
+import { dateKeyFromRecordedAt } from "@/db/dateKey";
 import { newId } from "@/lib/ids";
+import { checkinPatchSchema, checkinPayloadSchema } from "@/lib/validationSchemas";
 
 export type CheckinInput = {
   recordedAt: number;
@@ -20,13 +22,15 @@ export const getLatest = () =>
 export const getById = (id: string) => db.checkins.get(id);
 
 export async function createCheckin(input: CheckinInput): Promise<Checkin> {
+  const parsed = checkinPayloadSchema.parse(input);
   const now = Date.now();
   const checkin: Checkin = {
     id: newId(),
-    recordedAt: input.recordedAt,
-    weightKg: input.weightKg,
-    bodyFatPct: input.bodyFatPct,
-    notes: input.notes?.trim() || undefined,
+    recordedAt: parsed.recordedAt,
+    dateKey: dateKeyFromRecordedAt(parsed.recordedAt),
+    weightKg: parsed.weightKg,
+    bodyFatPct: parsed.bodyFatPct,
+    notes: parsed.notes?.trim() || undefined,
     createdAt: now,
     updatedAt: now,
   };
@@ -35,18 +39,34 @@ export async function createCheckin(input: CheckinInput): Promise<Checkin> {
 }
 
 export async function updateCheckin(id: string, patch: Partial<CheckinInput>): Promise<void> {
+  const parsed = checkinPatchSchema.parse(patch);
   const existing = await db.checkins.get(id);
   if (!existing) throw new Error("Check-in not found");
-  await db.checkins.put({
+
+  const recordedAtChanged =
+    parsed.recordedAt !== undefined && parsed.recordedAt !== existing.recordedAt;
+  const nextRecordedAt = parsed.recordedAt ?? existing.recordedAt;
+
+  const next: Checkin = {
     ...existing,
-    ...patch,
-    notes: patch.notes !== undefined ? patch.notes.trim() || undefined : existing.notes,
+    ...parsed,
+    recordedAt: nextRecordedAt,
+    // Keep dateKey consistent with recordedAt whenever it changes.
+    dateKey: recordedAtChanged
+      ? dateKeyFromRecordedAt(nextRecordedAt)
+      : existing.dateKey,
+    notes:
+      parsed.notes !== undefined
+        ? parsed.notes.trim() || undefined
+        : existing.notes,
     updatedAt: Date.now(),
-  });
-  // mirror recordedAt onto measurements
-  if (patch.recordedAt && patch.recordedAt !== existing.recordedAt) {
+  };
+  await db.checkins.put(next);
+
+  // Mirror recordedAt onto measurements when it changed.
+  if (recordedAtChanged) {
     const ms = await db.measurements.where("checkinId").equals(id).toArray();
-    await db.measurements.bulkPut(ms.map((m) => ({ ...m, recordedAt: patch.recordedAt! })));
+    await db.measurements.bulkPut(ms.map((m) => ({ ...m, recordedAt: nextRecordedAt })));
   }
 }
 
