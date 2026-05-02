@@ -17,7 +17,7 @@ export function useAnalysisInputs() {
       bodyFatPctManual: latest?.bodyFatPct,
       waistCm: byType.get("waist"),
       neckCm: byType.get("neck"),
-      hipCm: byType.get("hip"),
+      hipCm: byType.get("hips") ?? byType.get("hip"),
     };
     return { inputs, latest: latest ?? null, profile };
   }, []);
