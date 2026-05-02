@@ -49,6 +49,19 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Brand greens (metallic accents)
+        brand: {
+          light: "hsl(var(--brand-light))",
+          DEFAULT: "hsl(var(--brand-primary))",
+          primary: "hsl(var(--brand-primary))",
+          secondary: "hsl(var(--brand-secondary))",
+          dark: "hsl(var(--brand-dark))",
+        },
+        surface: {
+          DEFAULT: "hsl(var(--background))",
+          secondary: "hsl(var(--surface-secondary))",
+          tertiary: "hsl(var(--surface-tertiary))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -61,9 +74,19 @@ export default {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: "var(--radius)",            // 16px standard
+        md: "calc(var(--radius) - 4px)", // 12px
+        sm: "calc(var(--radius) - 8px)", // 8px
+      },
+      boxShadow: {
+        soft: "0 4px 20px rgba(0, 0, 0, 0.04)",
+        "soft-md": "0 8px 28px rgba(0, 0, 0, 0.06)",
+      },
+      backgroundImage: {
+        "brand-gradient":
+          "linear-gradient(135deg, #6EE7B7 0%, #34D399 50%, #059669 100%)",
+        "brand-gradient-hover":
+          "linear-gradient(135deg, #34D399 0%, #10B981 50%, #047857 100%)",
       },
       keyframes: {
         "accordion-down": {

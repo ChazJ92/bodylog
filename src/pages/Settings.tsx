@@ -13,6 +13,7 @@ import { fromDisplayLength, lengthSuffix, toDisplayLength } from "@/lib/units";
 import * as exportImport from "@/services/exportImportService";
 import type { LengthUnit, Sex, WeightUnit } from "@/db/db";
 import { SectionHeader } from "@/components/ui-bits";
+import { cn } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
 
 export default function Settings() {
@@ -46,16 +47,18 @@ export default function Settings() {
 
   return (
     <div className="space-y-10">
-      <header>
-        <h1 className="text-3xl">Settings</h1>
-        <p className="font-sans text-sm text-muted-foreground mt-1">
+      <header className="space-y-1.5">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+          Settings
+        </h1>
+        <p className="text-sm text-muted-foreground">
           Everything here lives only on this device.
         </p>
       </header>
 
-      <section className="space-y-4">
+      <section className="card-surface space-y-5 p-6">
         <SectionHeader title="Profile" />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 font-sans">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FieldLabel label="Sex (for body-comp formulas)">
             <select
               value={profile?.sex ?? "other"}
@@ -82,9 +85,9 @@ export default function Settings() {
         </div>
       </section>
 
-      <section className="space-y-4">
+      <section className="card-surface space-y-5 p-6">
         <SectionHeader title="Units" />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 font-sans">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FieldLabel label="Weight">
             <Toggle
               value={wUnit}
@@ -133,14 +136,17 @@ function MeasurementTypesPanel() {
   };
 
   return (
-    <section className="space-y-4">
+    <section className="card-surface space-y-4 p-6">
       <SectionHeader title="Measurement types" />
-      <p className="font-sans text-xs text-muted-foreground -mt-2">
+      <p className="-mt-2 text-xs text-muted-foreground">
         Disabled types stay in history but won't appear on new check-ins. Built-in types can't be deleted.
       </p>
-      <ul className="divide-y divide-border/60 rounded-md border border-border/60 bg-card font-sans">
+      <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-secondary">
         {all.map((t) => (
-          <li key={t.id} className="flex items-center gap-3 px-4 py-2.5">
+          <li
+            key={t.id}
+            className="flex items-center gap-3 bg-card px-4 py-3 transition-colors hover:bg-surface-secondary"
+          >
             <input
               defaultValue={t.name}
               onBlur={(e) => {
@@ -148,23 +154,24 @@ function MeasurementTypesPanel() {
                   rename.run(t.id, e.target.value);
                 }
               }}
-              className="flex-1 bg-transparent text-sm outline-none focus:ring-1 focus:ring-ring rounded px-1"
+              className="flex-1 rounded-md bg-transparent px-1 py-0.5 text-sm font-medium text-foreground outline-none transition-shadow focus:ring-2 focus:ring-brand/40"
             />
-            <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               {t.isBuiltIn ? "built-in" : "custom"}
             </span>
-            <label className="flex items-center gap-2 text-xs">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
               <input
                 type="checkbox"
                 checked={t.isActive}
                 onChange={(e) => setActive.run(t.id, e.target.checked)}
+                className="h-4 w-4 rounded border-border text-brand accent-brand focus:ring-brand"
               />
               active
             </label>
           </li>
         ))}
       </ul>
-      <div className="flex gap-2 font-sans">
+      <div className="flex gap-2">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -175,7 +182,7 @@ function MeasurementTypesPanel() {
           type="button"
           onClick={onAdd}
           disabled={!name.trim() || create.isSubmitting}
-          className="rounded-full bg-foreground px-4 py-2 text-sm text-background disabled:opacity-50"
+          className="btn-primary"
         >
           Add
         </button>
@@ -239,17 +246,17 @@ function DataPanel() {
   };
 
   return (
-    <section className="space-y-4">
+    <section className="card-surface space-y-4 p-6">
       <SectionHeader title="Your data" />
-      <p className="font-sans text-xs text-muted-foreground -mt-2">
+      <p className="-mt-2 text-xs text-muted-foreground">
         All data lives in this browser's IndexedDB. Export to a JSON file as your backup.
       </p>
-      <div className="flex flex-wrap gap-2 font-sans">
+      <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={onExport}
           disabled={busy}
-          className="rounded-full border border-border bg-background px-4 py-2 text-sm hover:bg-secondary disabled:opacity-50"
+          className="btn-secondary"
         >
           Export JSON
         </button>
@@ -257,7 +264,7 @@ function DataPanel() {
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={busy}
-          className="rounded-full border border-border bg-background px-4 py-2 text-sm hover:bg-secondary disabled:opacity-50"
+          className="btn-secondary"
         >
           Import JSON
         </button>
@@ -275,7 +282,7 @@ function DataPanel() {
           type="button"
           onClick={onClear}
           disabled={busy}
-          className="ml-auto inline-flex items-center gap-2 rounded-full border border-destructive/40 px-4 py-2 text-sm text-destructive hover:bg-destructive/10"
+          className="btn-danger ml-auto"
         >
           <Trash2 className="h-4 w-4" /> Erase all data
         </button>
@@ -284,13 +291,12 @@ function DataPanel() {
   );
 }
 
-const inputCls =
-  "w-full rounded-md border border-input bg-background px-3 py-2 text-base outline-none focus:ring-2 focus:ring-ring focus:border-transparent";
+const inputCls = "input-base";
 
 function FieldLabel({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-1.5">
+      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </span>
       {children}
@@ -308,20 +314,25 @@ function Toggle<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="inline-flex rounded-full border border-border p-1 bg-background">
-      {options.map((o) => (
-        <button
-          key={o.v}
-          type="button"
-          onClick={() => onChange(o.v)}
-          className={
-            "rounded-full px-4 py-1 text-xs uppercase tracking-[0.15em] transition-colors " +
-            (value === o.v ? "bg-foreground text-background" : "text-muted-foreground")
-          }
-        >
-          {o.label}
-        </button>
-      ))}
+    <div className="inline-flex rounded-full border border-border bg-surface-secondary p-1">
+      {options.map((o) => {
+        const active = value === o.v;
+        return (
+          <button
+            key={o.v}
+            type="button"
+            onClick={() => onChange(o.v)}
+            className={cn(
+              "rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition-all",
+              active
+                ? "bg-brand-gradient text-white shadow-soft"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {o.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

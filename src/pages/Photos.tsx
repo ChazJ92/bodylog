@@ -59,17 +59,19 @@ export default function Photos() {
   const compareB = compareIds[1] ? photos.find((p) => p.id === compareIds[1]) : undefined;
 
   return (
-    <div className="space-y-8">
-      <header className="flex items-end justify-between">
-        <div>
-          <h1 className="text-3xl">Photos</h1>
-          <p className="font-sans text-sm text-muted-foreground mt-1">
+    <div className="space-y-10">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="space-y-1.5">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+            Photos
+          </h1>
+          <p className="text-sm text-muted-foreground">
             Stored on this device only. Compressed to ~1600px.
           </p>
         </div>
         <button
           onClick={onPick}
-          className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2.5 text-sm text-background font-sans disabled:opacity-50"
+          className="btn-primary"
           disabled={add.isSubmitting}
         >
           <Camera className="h-4 w-4" />
@@ -85,31 +87,33 @@ export default function Photos() {
         />
       </header>
 
-      <div className="flex flex-wrap items-center gap-3 font-sans text-xs">
-        <span className="uppercase tracking-[0.18em] text-muted-foreground">Pose for new:</span>
-        {POSES.map((p) => (
-          <button
-            key={p.tag}
-            type="button"
-            onClick={() => setPose(p.tag)}
-            className={cn(
-              "rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.15em]",
-              pose === p.tag ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground",
-            )}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
+      <div className="card-surface space-y-4 p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Pose for new:
+          </span>
+          {POSES.map((p) => (
+            <PoseChip
+              key={p.tag}
+              active={pose === p.tag}
+              onClick={() => setPose(p.tag)}
+            >
+              {p.label}
+            </PoseChip>
+          ))}
+        </div>
 
-      <div className="flex flex-wrap items-center gap-2 font-sans text-xs">
-        <span className="uppercase tracking-[0.18em] text-muted-foreground mr-1">Filter:</span>
-        <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>All</FilterChip>
-        {POSES.map((p) => (
-          <FilterChip key={p.tag} active={filter === p.tag} onClick={() => setFilter(p.tag)}>
-            {p.label}
-          </FilterChip>
-        ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Filter:
+          </span>
+          <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>All</FilterChip>
+          {POSES.map((p) => (
+            <FilterChip key={p.tag} active={filter === p.tag} onClick={() => setFilter(p.tag)}>
+              {p.label}
+            </FilterChip>
+          ))}
+        </div>
       </div>
 
       {compareA && compareB && (
@@ -119,7 +123,7 @@ export default function Photos() {
             action={
               <button
                 onClick={() => setCompareIds([])}
-                className="font-sans text-xs text-muted-foreground hover:text-foreground"
+                className="btn-ghost text-xs"
               >
                 Clear
               </button>
@@ -175,30 +179,38 @@ function PhotoCard({
   return (
     <li
       className={cn(
-        "group relative overflow-hidden rounded-md border bg-card",
-        selected ? "border-accent ring-2 ring-accent" : "border-border/60",
+        "group relative overflow-hidden rounded-2xl border bg-card shadow-soft transition-all duration-200",
+        selected
+          ? "border-brand ring-2 ring-brand/40"
+          : "border-border hover:border-brand hover:shadow-soft-md",
       )}
     >
-      <div className="aspect-[3/4] w-full bg-secondary">
+      <div className="relative aspect-[3/4] w-full bg-surface-secondary">
         {url && (
           <img
             src={url}
             alt={`Body photo, ${photo.poseTag}, ${fmtDate(photo.recordedAt)}`}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             loading="lazy"
           />
         )}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+          style={{ backgroundColor: "rgba(15, 23, 42, 0.4)" }}
+        />
       </div>
-      <div className="flex items-center justify-between p-2 font-sans text-[11px]">
-        <div>
-          <div className="uppercase tracking-[0.15em] text-muted-foreground">{photo.poseTag}</div>
+      <div className="flex items-center justify-between gap-2 p-2.5 text-[11px]">
+        <div className="min-w-0">
+          <div className="font-semibold uppercase tracking-[0.14em] text-foreground">
+            {photo.poseTag}
+          </div>
           <div className="text-muted-foreground">{fmtDate(photo.recordedAt)}</div>
         </div>
         <div className="flex items-center gap-1">
           <select
             value={photo.poseTag}
             onChange={(e) => onChangePose(e.target.value as PoseTag)}
-            className="rounded border border-border bg-background px-1 py-0.5 text-[10px]"
+            className="rounded-lg border border-border bg-background px-1.5 py-1 text-[10px] font-medium text-foreground transition-colors hover:border-brand focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
             aria-label="Change pose tag"
           >
             {POSES.map((p) => (
@@ -208,7 +220,7 @@ function PhotoCard({
           <button
             type="button"
             onClick={onCompare}
-            className="rounded border border-border p-1 hover:bg-secondary"
+            className="rounded-lg border border-border p-1.5 text-muted-foreground transition-colors hover:border-brand hover:text-brand-dark"
             aria-label="Toggle compare"
           >
             <GitCompare className="h-3.5 w-3.5" />
@@ -216,7 +228,7 @@ function PhotoCard({
           <button
             type="button"
             onClick={onDelete}
-            className="rounded border border-border p-1 text-destructive hover:bg-destructive/10"
+            className="rounded-lg border border-border p-1.5 text-destructive transition-colors hover:border-destructive/50 hover:bg-destructive/10"
             aria-label="Delete photo"
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -230,12 +242,21 @@ function PhotoCard({
 function ComparePane({ photo }: { photo: Photo }) {
   const url = useObjectUrl(photo.blob);
   return (
-    <div className="rounded-md border border-border/60 bg-card overflow-hidden">
-      <div className="aspect-[3/4] bg-secondary">
-        {url && <img src={url} alt={`${photo.poseTag} ${fmtDate(photo.recordedAt)}`} className="h-full w-full object-cover" />}
+    <div className="card-surface overflow-hidden p-0">
+      <div className="aspect-[3/4] bg-surface-secondary">
+        {url && (
+          <img
+            src={url}
+            alt={`${photo.poseTag} ${fmtDate(photo.recordedAt)}`}
+            className="h-full w-full object-cover"
+          />
+        )}
       </div>
-      <div className="p-2 font-sans text-[11px] text-muted-foreground">
-        <span className="uppercase tracking-[0.15em]">{photo.poseTag}</span> · {fmtDate(photo.recordedAt)}
+      <div className="p-2.5 text-[11px] text-muted-foreground">
+        <span className="font-semibold uppercase tracking-[0.14em] text-foreground">
+          {photo.poseTag}
+        </span>{" "}
+        · {fmtDate(photo.recordedAt)}
       </div>
     </div>
   );
@@ -246,10 +267,19 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
     <button
       type="button"
       onClick={onClick}
-      className={cn(
-        "rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.15em]",
-        active ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground",
-      )}
+      className={cn("chip", active && "chip-active")}
+    >
+      {children}
+    </button>
+  );
+}
+
+function PoseChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn("chip", active && "chip-active")}
     >
       {children}
     </button>
