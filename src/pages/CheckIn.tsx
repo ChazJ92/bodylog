@@ -186,15 +186,17 @@ export default function CheckIn() {
   const sortedTypes = useMemo(() => types, [types]);
 
   return (
-    <form onSubmit={onSubmit} className="space-y-8 font-sans" noValidate>
-      <header>
-        <h1 className="font-serif text-3xl">{isEdit ? "Edit check-in" : "New check-in"}</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+    <form onSubmit={onSubmit} className="space-y-10" noValidate>
+      <header className="space-y-1.5">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+          {isEdit ? "Edit check-in" : "New check-in"}
+        </h1>
+        <p className="text-sm text-muted-foreground">
           Skip any field. The fewer fields, the easier the habit.
         </p>
       </header>
 
-      <section className="space-y-4">
+      <section className="card-surface space-y-5 p-6">
         <Field label="When" htmlFor="recordedAt">
           <input
             id="recordedAt"
@@ -234,8 +236,10 @@ export default function CheckIn() {
         </div>
       </section>
 
-      <section>
-        <h2 className="font-serif text-xl mb-3">Measurements ({lengthSuffix(lUnit)})</h2>
+      <section className="card-surface space-y-4 p-6">
+        <h2 className="text-base font-semibold tracking-tight text-foreground">
+          Measurements ({lengthSuffix(lUnit)})
+        </h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {sortedTypes.map((t) => (
             <Field key={t.id} label={t.name} htmlFor={`m_${t.id}`} error={errors[`m_${t.id}`]}>
@@ -256,38 +260,32 @@ export default function CheckIn() {
         </div>
       </section>
 
-      <Field label="Notes" htmlFor="notes" error={errors.notes}>
-        <textarea
-          id="notes"
-          rows={3}
-          value={form.notes}
-          onChange={(e) => setForm({ ...form, notes: e.target.value })}
-          className={`${inputCls} resize-y`}
-          placeholder="How you felt, training context, anything worth remembering."
-        />
-      </Field>
+      <section className="card-surface p-6">
+        <Field label="Notes" htmlFor="notes" error={errors.notes}>
+          <textarea
+            id="notes"
+            rows={3}
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            className={`${inputCls} resize-y`}
+            placeholder="How you felt, training context, anything worth remembering."
+          />
+        </Field>
+      </section>
 
       <div className="flex flex-wrap items-center gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={submitting}
-          className="inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-2.5 text-sm text-background disabled:opacity-50"
-        >
+        <button type="submit" disabled={submitting} className="btn-primary">
           {submitting ? "Saving…" : isEdit ? "Save changes" : "Save check-in"}
         </button>
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="rounded-full border border-border px-5 py-2.5 text-sm hover:bg-secondary"
+          className="btn-secondary"
         >
           Cancel
         </button>
         {isEdit && (
-          <button
-            type="button"
-            onClick={onDelete}
-            className="ml-auto text-sm text-destructive hover:underline"
-          >
+          <button type="button" onClick={onDelete} className="btn-danger ml-auto">
             Delete check-in
           </button>
         )}
@@ -296,8 +294,7 @@ export default function CheckIn() {
   );
 }
 
-const inputCls =
-  "w-full rounded-md border border-input bg-background px-3 py-2 text-base outline-none focus:ring-2 focus:ring-ring focus:border-transparent";
+const inputCls = "input-base";
 
 function Field({
   label,
@@ -312,11 +309,11 @@ function Field({
 }) {
   return (
     <label htmlFor={htmlFor} className="block">
-      <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-1.5">
+      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </span>
       {children}
-      {error && <span className="mt-1 block text-xs text-destructive">{error}</span>}
+      {error && <span className="mt-1.5 block text-xs font-medium text-destructive">{error}</span>}
     </label>
   );
 }

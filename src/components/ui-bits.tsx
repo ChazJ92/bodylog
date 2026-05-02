@@ -8,6 +8,7 @@ export function StatCard({
   delta,
   hint,
   className,
+  accent = false,
 }: {
   label: string;
   value: ReactNode;
@@ -15,23 +16,29 @@ export function StatCard({
   delta?: ReactNode;
   hint?: ReactNode;
   className?: string;
+  accent?: boolean;
 }) {
   return (
     <div
       className={cn(
-        "rounded-md border border-border/60 bg-card p-5 flex flex-col gap-2",
+        "card-surface flex flex-col gap-2.5 p-5",
+        accent && "card-accent-top",
         className,
       )}
     >
-      <div className="font-sans text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </div>
       <div className="flex items-baseline gap-2">
-        <span className="stat-number text-4xl">{value}</span>
-        {unit && <span className="font-sans text-sm text-muted-foreground">{unit}</span>}
+        <span className="stat-number text-[2.25rem] leading-none">{value}</span>
+        {unit && (
+          <span className="text-sm font-medium text-muted-foreground">
+            {unit}
+          </span>
+        )}
       </div>
       {(delta || hint) && (
-        <div className="font-sans text-xs text-muted-foreground flex items-center gap-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {delta}
           {hint}
         </div>
@@ -43,7 +50,9 @@ export function StatCard({
 export function SectionHeader({ title, action }: { title: string; action?: ReactNode }) {
   return (
     <div className="mb-3 flex items-end justify-between">
-      <h2 className="text-lg font-medium">{title}</h2>
+      <h2 className="text-base font-semibold tracking-tight text-foreground">
+        {title}
+      </h2>
       {action}
     </div>
   );
@@ -51,10 +60,12 @@ export function SectionHeader({ title, action }: { title: string; action?: React
 
 export function EmptyState({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
   return (
-    <div className="rounded-md border border-dashed border-border bg-card/40 p-8 text-center">
-      <p className="font-medium">{title}</p>
-      {description && <p className="mt-1 text-sm text-muted-foreground font-sans">{description}</p>}
-      {action && <div className="mt-4">{action}</div>}
+    <div className="rounded-2xl border border-dashed border-border bg-surface-secondary p-10 text-center">
+      <p className="text-base font-semibold text-foreground">{title}</p>
+      {description && (
+        <p className="mt-1.5 text-sm text-muted-foreground">{description}</p>
+      )}
+      {action && <div className="mt-5">{action}</div>}
     </div>
   );
 }

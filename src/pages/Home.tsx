@@ -34,12 +34,14 @@ export default function Home() {
   const typeById = new Map(types.map((t) => [t.id, t]));
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-1">
-        <p className="font-sans text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+    <div className="space-y-10">
+      <header className="space-y-2">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-dark">
           {fmtDate(Date.now())}
         </p>
-        <h1 className="text-3xl">A quiet record of your body, kept by you.</h1>
+        <h1 className="text-[2rem] font-semibold leading-tight tracking-tight text-foreground">
+          A quiet record of your body, kept by you.
+        </h1>
       </header>
 
       {!latest ? (
@@ -47,10 +49,7 @@ export default function Home() {
           title="No check-ins yet"
           description="Start with weight, body fat, or any measurement. Add as little or as much as you like."
           action={
-            <Link
-              to="/checkin"
-              className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 font-sans text-sm text-background"
-            >
+            <Link to="/checkin" className="btn-primary">
               Begin first check-in <ArrowRight className="h-4 w-4" />
             </Link>
           }
@@ -59,6 +58,7 @@ export default function Home() {
         <>
           <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <StatCard
+              accent
               label="Weight"
               value={weightDisplay != null ? fmtNumber(weightDisplay, 1) : "—"}
               unit={weightDisplay != null ? weightSuffix(wUnit) : undefined}
@@ -69,8 +69,8 @@ export default function Home() {
                       weightDelta === 0
                         ? "text-muted-foreground"
                         : weightDelta < 0
-                        ? "text-success"
-                        : "text-warning"
+                        ? "text-brand-dark font-medium"
+                        : "text-warning font-medium"
                     }
                   >
                     {fmtDelta(weightDelta, 1)} {weightSuffix(wUnit)}
@@ -98,7 +98,11 @@ export default function Home() {
             />
             <StatCard
               label="Last check-in"
-              value={<span className="text-2xl">{fmtDate(latest.recordedAt)}</span>}
+              value={
+                <span className="text-2xl font-semibold">
+                  {fmtDate(latest.recordedAt)}
+                </span>
+              }
               hint={latest.notes ? <span className="truncate">“{latest.notes}”</span> : null}
             />
           </section>
@@ -106,21 +110,18 @@ export default function Home() {
           {latestMeasurements.length > 0 && (
             <section>
               <SectionHeader title="Latest measurements" />
-              <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 {latestMeasurements.map((m) => {
                   const t = typeById.get(m.measurementTypeId);
                   if (!t) return null;
                   return (
-                    <li
-                      key={m.id}
-                      className="rounded-md border border-border/60 bg-card px-4 py-3"
-                    >
-                      <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    <li key={m.id} className="card-surface px-4 py-3.5">
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                         {t.name}
                       </div>
-                      <div className="stat-number text-xl">
+                      <div className="stat-number mt-1 text-xl">
                         {fmtNumber(toDisplayLength(m.valueCm, lUnit), 1)}
-                        <span className="ml-1 font-sans text-xs text-muted-foreground">
+                        <span className="ml-1 text-xs font-medium text-muted-foreground">
                           {lengthSuffix(lUnit)}
                         </span>
                       </div>
@@ -135,27 +136,32 @@ export default function Home() {
             <SectionHeader
               title="Recent"
               action={
-                <Link to="/measurements" className="font-sans text-xs text-muted-foreground hover:text-foreground">
+                <Link
+                  to="/measurements"
+                  className="text-xs font-medium text-muted-foreground transition-colors hover:text-brand-dark"
+                >
                   View history →
                 </Link>
               }
             />
-            <ul className="divide-y divide-border/60 rounded-md border border-border/60 bg-card">
+            <ul className="card-surface divide-y divide-border overflow-hidden">
               {recent.map((c) => (
                 <li key={c.id}>
                   <Link
                     to={`/checkin/${c.id}`}
-                    className="flex items-center justify-between px-4 py-3 hover:bg-secondary/40"
+                    className="flex items-center justify-between px-4 py-3.5 transition-colors hover:bg-surface-secondary"
                   >
                     <div>
-                      <div className="font-medium">{fmtDate(c.recordedAt)}</div>
+                      <div className="font-medium text-foreground">
+                        {fmtDate(c.recordedAt)}
+                      </div>
                       {c.notes && (
-                        <div className="font-sans text-xs text-muted-foreground line-clamp-1">
+                        <div className="line-clamp-1 text-xs text-muted-foreground">
                           {c.notes}
                         </div>
                       )}
                     </div>
-                    <div className="stat-number text-base text-muted-foreground">
+                    <div className="stat-number text-base text-foreground">
                       {c.weightKg != null
                         ? `${fmtNumber(toDisplayWeight(c.weightKg, wUnit), 1)} ${weightSuffix(wUnit)}`
                         : "—"}

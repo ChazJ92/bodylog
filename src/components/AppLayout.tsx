@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { Home, ClipboardList, Ruler, BarChart3, Image, Settings as SettingsIcon, Plus } from "lucide-react";
+import { Home, Ruler, BarChart3, Image, Settings as SettingsIcon, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -16,19 +16,29 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-30">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
-          <Link to="/" className="flex items-baseline gap-2">
-            <span className="text-2xl font-medium tracking-tight">BodyLog</span>
-            <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              local · private
-            </span>
+      <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3.5">
+          <Link to="/" className="flex items-center gap-2.5">
+            <img
+              src="/icon.png"
+              alt=""
+              aria-hidden="true"
+              className="h-9 w-9 rounded-xl shadow-soft"
+            />
+            <div className="flex flex-col leading-tight">
+              <span className="text-lg font-semibold tracking-tight text-foreground">
+                BodyLog
+              </span>
+              <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                local · private
+              </span>
+            </div>
           </Link>
           <Link
             to="/checkin"
             className={cn(
-              "inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-sm text-background font-sans transition-opacity hover:opacity-90",
-              onCheckIn && "opacity-50 pointer-events-none",
+              "btn-primary",
+              onCheckIn && "pointer-events-none opacity-50",
             )}
           >
             <Plus className="h-4 w-4" />
@@ -37,12 +47,12 @@ export default function AppLayout() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-5 pb-32 pt-6">
+      <main className="mx-auto max-w-3xl px-5 pb-32 pt-8">
         <Outlet />
       </main>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/95 backdrop-blur"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <ul className="mx-auto flex max-w-3xl items-stretch justify-around px-2">
@@ -53,13 +63,25 @@ export default function AppLayout() {
                 end={end}
                 className={({ isActive }) =>
                   cn(
-                    "flex flex-col items-center gap-1 px-2 py-2.5 text-[10px] uppercase tracking-[0.15em] font-sans",
-                    isActive ? "text-accent" : "text-muted-foreground hover:text-foreground",
+                    "flex flex-col items-center gap-1 px-2 py-2.5 text-[10px] font-medium uppercase tracking-[0.15em] transition-colors",
+                    isActive
+                      ? "text-brand-dark"
+                      : "text-muted-foreground hover:text-brand",
                   )
                 }
               >
-                <Icon className="h-5 w-5" strokeWidth={1.5} />
-                <span>{label}</span>
+                {({ isActive }) => (
+                  <>
+                    <Icon
+                      className={cn(
+                        "h-5 w-5 transition-colors",
+                        isActive ? "text-brand" : "text-muted-foreground",
+                      )}
+                      strokeWidth={isActive ? 2 : 1.6}
+                    />
+                    <span>{label}</span>
+                  </>
+                )}
               </NavLink>
             </li>
           ))}
