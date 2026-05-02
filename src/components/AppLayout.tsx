@@ -19,7 +19,7 @@ export default function AppLayout() {
       <header className="border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-30">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
           <Link to="/" className="flex items-baseline gap-2">
-            <span className="text-2xl font-medium tracking-tight">Ledger</span>
+            <span className="text-2xl font-medium tracking-tight">BodyLog</span>
             <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
               local · private
             </span>
