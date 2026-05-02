@@ -78,12 +78,7 @@ export async function importAll(json: string): Promise<{ replaced: boolean }> {
   }
   await db.transaction(
     "rw",
-    db.profile,
-    db.settings,
-    db.measurementTypes,
-    db.checkins,
-    db.measurements,
-    db.photos,
+    [db.profile, db.settings, db.measurementTypes, db.checkins, db.measurements, db.photos],
     async () => {
       await Promise.all([
         db.profile.clear(),
@@ -121,12 +116,7 @@ export async function importAll(json: string): Promise<{ replaced: boolean }> {
 export async function clearAll(): Promise<void> {
   await db.transaction(
     "rw",
-    db.profile,
-    db.settings,
-    db.measurementTypes,
-    db.checkins,
-    db.measurements,
-    db.photos,
+    [db.profile, db.settings, db.measurementTypes, db.checkins, db.measurements, db.photos],
     async () => {
       await Promise.all([
         db.profile.clear(),
