@@ -290,7 +290,7 @@ export function ensureSeeded(): Promise<void> {
       } else {
         // Existing DB: additively add only canonical built-ins that are
         // missing. Never wipes, never overwrites legacy rows.
-        await ensureBuiltInMeasurementTypes();
+        await ensureBuiltInMeasurementTypes(db.measurementTypes);
       }
 
       const meta = await db.appMeta.get("meta");
