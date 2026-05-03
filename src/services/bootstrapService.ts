@@ -19,12 +19,17 @@ export function ensureAppReady(): Promise<void> {
   if (!readyPromise) {
     readyPromise = (async () => {
       await db.open();
-      await seedCanonicalSingletons();
-      await seedMeasurementTypes();
-      await ensureAppMeta();
+      await syncEssentialData();
     })();
   }
   return readyPromise;
+}
+
+/** Idempotent: canonical profile/settings, built-ins, appMeta. Safe after import/clear. */
+export async function syncEssentialData(): Promise<void> {
+  await seedCanonicalSingletons();
+  await seedMeasurementTypes();
+  await ensureAppMeta();
 }
 
 async function seedCanonicalSingletons(): Promise<void> {
