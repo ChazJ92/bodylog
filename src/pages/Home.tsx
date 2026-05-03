@@ -3,7 +3,7 @@ import { useLatestCheckin, usePreviousCheckin, useRecentCheckins } from "@/hooks
 import { useSettings } from "@/hooks/useSettings";
 import { useProfile } from "@/hooks/useProfile";
 import { useMeasurementsForCheckin } from "@/hooks/useMeasurements";
-import { useActiveMeasurementTypes } from "@/hooks/useMeasurementTypes";
+import { useAllMeasurementTypes } from "@/hooks/useMeasurementTypes";
 import { toDisplayWeight, toDisplayLength, weightSuffix, lengthSuffix } from "@/lib/units";
 import { fmtDate, fmtDelta, fmtNumber } from "@/lib/format";
 import { bmi, bmiCategory } from "@/services/analysisService";
@@ -17,7 +17,10 @@ export default function Home() {
   const { data: prev } = usePreviousCheckin(latest?.recordedAt);
   const { data: recent } = useRecentCheckins(5);
   const { data: latestMeasurements } = useMeasurementsForCheckin(latest?.id);
-  const { data: types } = useActiveMeasurementTypes();
+  // Use the full type list (including legacy + inactive) so that historical
+  // measurements which reference legacy ids (e.g. `hip`) still resolve to a
+  // display name. Selection flows continue to filter via listActive.
+  const { data: types } = useAllMeasurementTypes();
 
   const wUnit = settings?.weightUnit ?? "kg";
   const lUnit = settings?.lengthUnit ?? "cm";

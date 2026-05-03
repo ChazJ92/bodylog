@@ -1,8 +1,24 @@
 import { db, type MeasurementType } from "@/db/db";
+import { filterLegacyShadowedTypes } from "@/db/builtIns";
 import { newId } from "@/lib/ids";
 
-export const listActive = () =>
-  db.measurementTypes.filter((t) => t.isActive).sortBy("sortOrder");
+/**
+ * Active types for normal user-facing selection (data entry, chart series,
+ * etc.). Legacy generic rows (`hip`, `arm`, `leg`, `thigh`, `calf`) are
+ * hidden when their canonical bilateral/plural replacements are present.
+ *
+ * Legacy rows remain in storage and continue to resolve by id for any
+ * historical lookup paths — `listAll` still returns them so the management
+ * UI in Settings can still see and toggle them, and any caller that needs
+ * the full set for display purposes (e.g. resolving a historical
+ * measurement's name) should use `listAll` instead.
+ */
+export const listActive = async (): Promise<MeasurementType[]> => {
+  const active = await db.measurementTypes
+    .filter((t) => t.isActive)
+    .sortBy("sortOrder");
+  return filterLegacyShadowedTypes(active);
+};
 
 export const listAll = () =>
   db.measurementTypes.orderBy("sortOrder").toArray();
