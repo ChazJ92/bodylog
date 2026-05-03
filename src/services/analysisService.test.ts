@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   resolveAnalysisCircumferences,
   navyBodyFat,
+  navyBodyFatRaw,
   waistToHip,
   deurenbergBodyFat,
   rfmBodyFat,
@@ -91,6 +92,21 @@ describe("navyBodyFat + waistToHip with hip/hips resolution", () => {
       types,
     );
     expect(waistToHip(circumferences.waistCm, circumferences.hipCm)).toBeCloseTo(0.8, 6);
+  });
+
+  it("returns null for Navy when raw formula is outside 2–80% (implausible measurements)", () => {
+    const i: AnalysisInputs = {
+      sex: "male",
+      heightCm: 180,
+      waistCm: 70,
+      neckCm: 65,
+      weightKg: 100,
+    };
+    const raw = navyBodyFatRaw(i);
+    expect(raw).not.toBeNull();
+    expect(raw!).toBeLessThan(2);
+    expect(navyBodyFat(i)).toBeNull();
+    expect(reasonNavyBodyFatUnavailable(i)).toMatch(/implausible/);
   });
 });
 

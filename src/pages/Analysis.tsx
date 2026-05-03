@@ -165,8 +165,8 @@ export default function Analysis() {
           <Card
             label="Lean mass"
             value={lean != null ? `${fmtNumber(toDisplayWeight(lean, wUnit), 1)} ${weightSuffix(wUnit)}` : "—"}
-            status="unknown"
-            note="weight × (1 − bf%); uses Navy if available, else self-reported %"
+            status={lean != null ? "normal" : "unknown"}
+            note="weight × (1 − bf%); plausible Navy (2–80%) if available, else self-reported %"
             unavailableReason={
               lean == null
                 ? reasonLeanFatMassUnavailable(inputs, navyBf, manualBf) ?? undefined
@@ -176,8 +176,8 @@ export default function Analysis() {
           <Card
             label="Fat mass"
             value={fat != null ? `${fmtNumber(toDisplayWeight(fat, wUnit), 1)} ${weightSuffix(wUnit)}` : "—"}
-            status="unknown"
-            note="weight × bf%; uses Navy if available, else self-reported %"
+            status={fat != null ? "normal" : "unknown"}
+            note="weight × bf%; plausible Navy (2–80%) if available, else self-reported %"
             unavailableReason={
               fat == null
                 ? reasonLeanFatMassUnavailable(inputs, navyBf, manualBf) ?? undefined
