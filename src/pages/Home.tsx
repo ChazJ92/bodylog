@@ -12,13 +12,20 @@ import {
   lengthSuffix,
 } from "@/lib/units";
 import { fmtDate, fmtDelta, fmtNumber } from "@/lib/format";
-import { bmi, bmiCategory } from "@/services/analysisService";
+import {
+  bmi,
+  bmiCategory,
+  navyBodyFat,
+  waistToHeight,
+} from "@/services/analysisService";
+import { useAnalysisInputs } from "@/hooks/useAnalysisInputs";
 import { StatCard, SectionHeader, EmptyState } from "@/components/ui-bits";
 import { ArrowRight } from "lucide-react";
 
 export default function Home() {
   const { data: settings } = useSettings();
   const { data: profile } = useProfile();
+  const { data: analysisBundle } = useAnalysisInputs();
   const { data: latest } = useLatestCheckin();
   const { data: prev } = usePreviousCheckin(latest?.recordedAt);
   const { data: recent } = useRecentCheckins(5);
@@ -39,6 +46,18 @@ export default function Home() {
 
   const bmiVal = bmi(latest?.weightKg, profile?.heightCm);
   const bmiCat = bmiCategory(bmiVal);
+
+  const analysisInputs = analysisBundle?.inputs;
+  const navyBfHome =
+    analysisInputs != null ? navyBodyFat(analysisInputs) : null;
+  const whtrHome =
+    analysisInputs != null
+      ? waistToHeight(analysisInputs.waistCm, analysisInputs.heightCm)
+      : null;
+  const analysisIncomplete =
+    latest != null &&
+    analysisInputs != null &&
+    (navyBfHome == null || whtrHome == null);
 
   const typeById = new Map(types.map((t) => [t.id, t]));
 
@@ -115,6 +134,59 @@ export default function Home() {
               hint={latest.notes ? <span className="truncate">“{latest.notes}”</span> : null}
             />
           </section>
+
+          {latest && analysisInputs && (
+            <section className="card-surface space-y-2.5 p-5">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Analysis snapshot
+                </h2>
+                <Link
+                  to="/analysis"
+                  className="text-xs font-medium text-muted-foreground transition-colors hover:text-brand-dark"
+                >
+                  Full analysis →
+                </Link>
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-foreground">
+                {navyBfHome != null && (
+                  <span>
+                    Navy body fat (est.):{" "}
+                    <span className="font-semibold tabular-nums">
+                      {fmtNumber(navyBfHome, 1)}%
+                    </span>
+                  </span>
+                )}
+                {whtrHome != null && (
+                  <span>
+                    Waist : height:{" "}
+                    <span className="font-semibold tabular-nums">
+                      {fmtNumber(whtrHome, 2)}
+                    </span>
+                  </span>
+                )}
+                {navyBfHome == null && whtrHome == null && (
+                  <span className="text-muted-foreground">
+                    Add waist, neck, height
+                    {analysisInputs.sex === "female" ? ", hips" : ""} on your check-in for
+                    estimates.
+                  </span>
+                )}
+              </div>
+              {analysisIncomplete && (
+                <p className="text-xs text-muted-foreground">
+                  Some analysis metrics need more data —{" "}
+                  <Link
+                    to="/analysis"
+                    className="font-medium text-brand-dark underline-offset-2 hover:underline"
+                  >
+                    see what&apos;s missing
+                  </Link>
+                  .
+                </p>
+              )}
+            </section>
+          )}
 
           {latestMeasurements.length > 0 && (
             <section>
