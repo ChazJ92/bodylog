@@ -3,9 +3,8 @@ import { toast } from "sonner";
 import { useSettings, useUpdateSettings } from "@/hooks/useSettings";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 import {
-  useActiveMeasurementTypes,
-  useAllMeasurementTypes,
   useCreateMeasurementType,
+  useManageableMeasurementTypes,
   useRenameMeasurementType,
   useSetMeasurementTypeActive,
 } from "@/hooks/useMeasurementTypes";
@@ -118,7 +117,7 @@ export default function Settings() {
 }
 
 function MeasurementTypesPanel() {
-  const { data: all } = useAllMeasurementTypes();
+  const { data: all } = useManageableMeasurementTypes();
   const create = useCreateMeasurementType();
   const rename = useRenameMeasurementType();
   const setActive = useSetMeasurementTypeActive();
