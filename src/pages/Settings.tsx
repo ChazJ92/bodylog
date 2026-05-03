@@ -8,7 +8,14 @@ import {
   useRenameMeasurementType,
   useSetMeasurementTypeActive,
 } from "@/hooks/useMeasurementTypes";
-import { fromDisplayLength, lengthSuffix, toDisplayLength } from "@/lib/units";
+import {
+  convertLengthDisplayValue,
+  displayLengthRange,
+  fromDisplayLength,
+  lengthSuffix,
+  toDisplayLength,
+} from "@/lib/units";
+import { RANGES } from "@/lib/validationSchemas";
 import * as exportImport from "@/services/exportImportService";
 import type { LengthUnit, Sex, WeightUnit } from "@/db/db";
 import { SectionHeader } from "@/components/ui-bits";
@@ -25,23 +32,62 @@ export default function Settings() {
   const lUnit = settings?.lengthUnit ?? "cm";
 
   const [heightInput, setHeightInput] = useState("");
+  const [heightError, setHeightError] = useState<string | null>(null);
+
+  // Re-seed the input when the persisted profile height changes. Unit
+  // toggles are handled by the dedicated conversion effect below so that
+  // any in-progress typing is preserved across cm <-> in.
   useEffect(() => {
     if (profile?.heightCm) {
       setHeightInput(toDisplayLength(profile.heightCm, lUnit).toFixed(1));
     } else {
       setHeightInput("");
     }
-  }, [profile?.heightCm, lUnit]);
+    setHeightError(null);
+    // lUnit intentionally omitted: see lUnitRef effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.heightCm]);
+
+  const lUnitRef = useRef<LengthUnit>(lUnit);
+  useEffect(() => {
+    if (lUnitRef.current === lUnit) return;
+    const fromUnit = lUnitRef.current;
+    lUnitRef.current = lUnit;
+    setHeightError(null);
+    setHeightInput((cur) => convertLengthDisplayValue(cur, fromUnit, lUnit));
+  }, [lUnit]);
 
   const onHeightBlur = async () => {
-    const v = Number(heightInput);
+    setHeightError(null);
     if (!heightInput.trim()) {
-      await updateProfile.run({ heightCm: undefined });
+      try {
+        await updateProfile.run({ heightCm: undefined });
+      } catch (e) {
+        setHeightError(e instanceof Error ? e.message : "Failed to save");
+      }
       return;
     }
-    if (!Number.isFinite(v)) return;
+    const v = Number(heightInput);
+    if (!Number.isFinite(v)) {
+      setHeightError("Enter a number");
+      return;
+    }
     const cm = fromDisplayLength(v, lUnit);
-    await updateProfile.run({ heightCm: cm });
+    if (cm < RANGES.heightCm.min || cm > RANGES.heightCm.max) {
+      setHeightError(
+        `Out of range (${displayLengthRange(
+          RANGES.heightCm.min,
+          RANGES.heightCm.max,
+          lUnit,
+        )})`,
+      );
+      return;
+    }
+    try {
+      await updateProfile.run({ heightCm: cm });
+    } catch (e) {
+      setHeightError(e instanceof Error ? e.message : "Failed to save");
+    }
   };
 
   return (
@@ -69,13 +115,16 @@ export default function Settings() {
               <option value="other">Prefer not to say</option>
             </select>
           </FieldLabel>
-          <FieldLabel label={`Height (${lengthSuffix(lUnit)})`}>
+          <FieldLabel label={`Height (${lengthSuffix(lUnit)})`} error={heightError}>
             <input
               type="number"
               inputMode="decimal"
               step="0.1"
               value={heightInput}
-              onChange={(e) => setHeightInput(e.target.value)}
+              onChange={(e) => {
+                setHeightInput(e.target.value);
+                if (heightError) setHeightError(null);
+              }}
               onBlur={onHeightBlur}
               className={inputCls}
               placeholder="—"
@@ -292,13 +341,26 @@ function DataPanel() {
 
 const inputCls = "input-base";
 
-function FieldLabel({ label, children }: { label: string; children: React.ReactNode }) {
+function FieldLabel({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string | null;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </span>
       {children}
+      {error && (
+        <span className="mt-1.5 block text-xs font-medium text-destructive">
+          {error}
+        </span>
+      )}
     </label>
   );
 }
