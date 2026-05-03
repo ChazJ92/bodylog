@@ -23,6 +23,11 @@ export const listActive = async (): Promise<MeasurementType[]> => {
 export const listAll = () =>
   db.measurementTypes.orderBy("sortOrder").toArray();
 
+export const listManageable = async (): Promise<MeasurementType[]> => {
+  const all = await listAll();
+  return filterLegacyShadowedTypes(all);
+};
+
 /**
  * Normalize a user-entered name for storage AND comparison:
  * - trim leading/trailing whitespace
