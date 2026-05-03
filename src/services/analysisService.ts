@@ -79,8 +79,11 @@ export function bmiCategory(b: number | null): Status {
   return "high";
 }
 
-// U.S. Navy body fat %
-export function navyBodyFat(i: AnalysisInputs): number | null {
+/**
+ * U.S. Navy body fat % — raw formula output (can be negative or nonsensical if
+ * measurements are inconsistent). Prefer `navyBodyFat` for display and downstream use.
+ */
+export function navyBodyFatRaw(i: AnalysisInputs): number | null {
   const { sex, heightCm, waistCm, neckCm, hipCm } = i;
   if (!heightCm || !waistCm || !neckCm) return null;
   if (sex === "male") {
@@ -97,6 +100,14 @@ export function navyBodyFat(i: AnalysisInputs): number | null {
     return Number.isFinite(v) ? v : null;
   }
   return null; // requires sex=male/female
+}
+
+/** Navy body fat % for UI and derived mass — same range as other estimates (2–80%). */
+export function navyBodyFat(i: AnalysisInputs): number | null {
+  const v = navyBodyFatRaw(i);
+  if (v == null || !Number.isFinite(v)) return null;
+  if (v < 2 || v > 80) return null;
+  return v;
 }
 
 /**
@@ -234,6 +245,10 @@ export function reasonNavyBodyFatUnavailable(i: AnalysisInputs): string | null {
     i.waistCm + i.hipCm <= i.neckCm
   ) {
     return "Waist plus hip must be greater than neck for the Navy formula.";
+  }
+  const raw = navyBodyFatRaw(i);
+  if (raw != null && (raw < 2 || raw > 80)) {
+    return "Navy formula produced an implausible body fat percentage (outside 2–80%). Check waist, neck, and hip measurements for consistency.";
   }
   return null;
 }
