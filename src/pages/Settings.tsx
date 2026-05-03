@@ -273,6 +273,7 @@ function MeasurementTypesPanel() {
             className="flex items-center gap-3 bg-card px-4 py-3 transition-colors hover:bg-surface-secondary"
           >
             <input
+              aria-label={`Rename ${t.name}`}
               defaultValue={t.name}
               onBlur={(e) => {
                 if (e.target.value.trim() && e.target.value !== t.name) {
@@ -300,6 +301,7 @@ function MeasurementTypesPanel() {
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
+          aria-label="New custom measurement name"
           placeholder="Add a custom measurement (e.g. Calf)"
           className={inputCls}
         />
@@ -470,6 +472,7 @@ function Toggle<T extends string>({
           <button
             key={o.v}
             type="button"
+            aria-pressed={active}
             onClick={() => onChange(o.v)}
             className={cn(
               "rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition-all",
