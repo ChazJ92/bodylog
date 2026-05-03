@@ -9,6 +9,7 @@ import {
   useSetMeasurementTypeActive,
 } from "@/hooks/useMeasurementTypes";
 import {
+  altLengthFromRaw,
   convertLengthDisplayValue,
   displayLengthRange,
   fromDisplayLength,
@@ -129,6 +130,14 @@ export default function Settings() {
               className={inputCls}
               placeholder="—"
             />
+            {(() => {
+              const altHint = altLengthFromRaw(heightInput, lUnit);
+              return altHint ? (
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  ≈ {altHint}
+                </span>
+              ) : null;
+            })()}
           </FieldLabel>
         </div>
       </section>

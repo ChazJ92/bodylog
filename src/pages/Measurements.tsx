@@ -13,7 +13,13 @@ import { useHistoryForType } from "@/hooks/useMeasurements";
 import { useRecentCheckins } from "@/hooks/useCheckins";
 import { useSettings } from "@/hooks/useSettings";
 import { fmtDate, fmtNumber } from "@/lib/format";
-import { lengthSuffix, toDisplayLength, toDisplayWeight, weightSuffix } from "@/lib/units";
+import {
+  altLengthFromCanonical,
+  lengthSuffix,
+  toDisplayLength,
+  toDisplayWeight,
+  weightSuffix,
+} from "@/lib/units";
 import { EmptyState, SectionHeader } from "@/components/ui-bits";
 import { cn } from "@/lib/utils";
 
@@ -31,14 +37,25 @@ export default function Measurements() {
   const isWeight = series === "weight";
   const { data: typeHistory } = useHistoryForType(isWeight ? undefined : series);
 
+  // `canonicalCm` is carried through for length series so both the
+  // tooltip and the history list can render the alt-unit hint without
+  // re-deriving the canonical value via the active display unit.
   const chartData = useMemo(() => {
     if (isWeight) {
       return checkins
         .filter((c) => c.weightKg != null)
-        .map((c) => ({ t: c.recordedAt, value: toDisplayWeight(c.weightKg!, wUnit) }))
+        .map((c) => ({
+          t: c.recordedAt,
+          value: toDisplayWeight(c.weightKg!, wUnit),
+          canonicalCm: null as number | null,
+        }))
         .sort((a, b) => a.t - b.t);
     }
-    return typeHistory.map((m) => ({ t: m.recordedAt, value: toDisplayLength(m.valueCm, lUnit) }));
+    return typeHistory.map((m) => ({
+      t: m.recordedAt,
+      value: toDisplayLength(m.valueCm, lUnit),
+      canonicalCm: m.valueCm as number | null,
+    }));
   }, [isWeight, checkins, typeHistory, wUnit, lUnit]);
 
   const unit = isWeight ? weightSuffix(wUnit) : lengthSuffix(lUnit);
@@ -113,7 +130,18 @@ export default function Measurements() {
                     }}
                     labelStyle={{ color: "#475569", fontWeight: 500 }}
                     labelFormatter={(v) => fmtDate(v as number)}
-                    formatter={(v: number) => [`${fmtNumber(v, 1)} ${unit}`, seriesLabel]}
+                    formatter={(v: number, _name, item) => {
+                      const main = `${fmtNumber(v, 1)} ${unit}`;
+                      const cm = (item as { payload?: { canonicalCm?: number | null } })
+                        ?.payload?.canonicalCm;
+                      if (!isWeight && cm != null) {
+                        return [
+                          `${main}  ≈ ${altLengthFromCanonical(cm, lUnit)}`,
+                          seriesLabel,
+                        ];
+                      }
+                      return [main, seriesLabel];
+                    }}
                   />
                   <Area
                     type="monotone"
@@ -141,10 +169,17 @@ export default function Measurements() {
                 className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-surface-secondary"
               >
                 <span className="text-sm text-muted-foreground">{fmtDate(p.t)}</span>
-                <span className="stat-number text-foreground">
-                  {fmtNumber(p.value, 1)}
-                  <span className="ml-1 text-xs font-medium text-muted-foreground">{unit}</span>
-                </span>
+                <div className="text-right">
+                  <div className="stat-number text-foreground">
+                    {fmtNumber(p.value, 1)}
+                    <span className="ml-1 text-xs font-medium text-muted-foreground">{unit}</span>
+                  </div>
+                  {!isWeight && p.canonicalCm != null && (
+                    <div className="mt-0.5 text-[11px] text-muted-foreground">
+                      ≈ {altLengthFromCanonical(p.canonicalCm, lUnit)}
+                    </div>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
