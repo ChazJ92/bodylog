@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+# BodyLog
 
-TODO: Document your project here
+Local-first body tracking app built with Vite, React, TypeScript, and Dexie.
