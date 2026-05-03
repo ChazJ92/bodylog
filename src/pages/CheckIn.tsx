@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useCheckin, useCreateCheckin, useDeleteCheckin, useUpdateCheckin } from "@/hooks/useCheckins";
@@ -6,6 +6,10 @@ import { useSettings } from "@/hooks/useSettings";
 import { useActiveMeasurementTypes } from "@/hooks/useMeasurementTypes";
 import { useMeasurementsForCheckin, useUpsertMeasurement } from "@/hooks/useMeasurements";
 import {
+  convertLengthDisplayValue,
+  convertWeightDisplayValue,
+  displayLengthRange,
+  displayWeightRange,
   fromDisplayLength,
   fromDisplayWeight,
   lengthSuffix,
@@ -19,6 +23,7 @@ import {
   measurementValueSchema,
   checkinPayloadSchema,
 } from "@/lib/validationSchemas";
+import type { LengthUnit, WeightUnit } from "@/db/db";
 
 type FormState = {
   recordedAt: string;
@@ -50,18 +55,22 @@ export default function CheckIn() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Hydrate when editing
+  // Hydrate from the persisted check-in. Re-runs only when the underlying
+  // record reference changes — unit toggles are handled by the dedicated
+  // conversion effects below so that in-progress typing is preserved.
   useEffect(() => {
     if (!isEdit) return;
     if (!existing) return;
     setForm((f) => ({
       ...f,
       recordedAt: toDateInputValue(existing.recordedAt),
-      weight: existing.weightKg != null ? String(toDisplayWeight(existing.weightKg, wUnit).toFixed(1)) : "",
+      weight: existing.weightKg != null ? toDisplayWeight(existing.weightKg, wUnit).toFixed(1) : "",
       bodyFat: existing.bodyFatPct != null ? String(existing.bodyFatPct) : "",
       notes: existing.notes ?? "",
     }));
-  }, [isEdit, existing, wUnit]);
+    // wUnit intentionally omitted: the unit-conversion effect handles toggles.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit, existing]);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -70,9 +79,41 @@ export default function CheckIn() {
       map[m.measurementTypeId] = toDisplayLength(m.valueCm, lUnit).toFixed(1);
     }
     setForm((f) => ({ ...f, measurements: { ...map, ...f.measurements } }));
-    // we only seed once per data load
+    // lUnit intentionally omitted: the unit-conversion effect handles toggles.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEdit, existingMeasurements.length, lUnit]);
+  }, [isEdit, existingMeasurements.length]);
+
+  // Re-display in-progress form values when the user toggles units. We
+  // round-trip through the canonical kg/cm so that the underlying value is
+  // never altered by the toggle itself — only the displayed string changes.
+  // Stored data is therefore never touched until submit.
+  const wUnitRef = useRef<WeightUnit>(wUnit);
+  useEffect(() => {
+    if (wUnitRef.current === wUnit) return;
+    const fromUnit = wUnitRef.current;
+    wUnitRef.current = wUnit;
+    setForm((f) => {
+      const next = convertWeightDisplayValue(f.weight, fromUnit, wUnit);
+      return next === f.weight ? f : { ...f, weight: next };
+    });
+  }, [wUnit]);
+
+  const lUnitRef = useRef<LengthUnit>(lUnit);
+  useEffect(() => {
+    if (lUnitRef.current === lUnit) return;
+    const fromUnit = lUnitRef.current;
+    lUnitRef.current = lUnit;
+    setForm((f) => {
+      let mutated = false;
+      const nextMeasurements: Record<string, string> = {};
+      for (const [k, v] of Object.entries(f.measurements)) {
+        const converted = convertLengthDisplayValue(v, fromUnit, lUnit);
+        if (converted !== v) mutated = true;
+        nextMeasurements[k] = converted;
+      }
+      return mutated ? { ...f, measurements: nextMeasurements } : f;
+    });
+  }, [lUnit]);
 
   const create = useCreateCheckin();
   const update = useUpdateCheckin();
@@ -113,7 +154,11 @@ export default function CheckIn() {
       for (const issue of payload.error.issues) {
         const field = issue.path[0];
         if (field === "weightKg" && !errs.weight) {
-          errs.weight = `Out of range (${RANGES.weightKg.min}–${RANGES.weightKg.max} kg)`;
+          errs.weight = `Out of range (${displayWeightRange(
+            RANGES.weightKg.min,
+            RANGES.weightKg.max,
+            wUnit,
+          )})`;
         } else if (field === "bodyFatPct" && !errs.bodyFat) {
           errs.bodyFat = `${RANGES.bodyFatPctManual.min}–${RANGES.bodyFatPctManual.max}%`;
         } else if (field === "notes") {
@@ -132,7 +177,11 @@ export default function CheckIn() {
       const cm = fromDisplayLength(v, lUnit);
       const r = measurementValueSchema.safeParse(cm);
       if (!r.success) {
-        errs[`m_${tid}`] = `${RANGES.measurementCm.min}–${RANGES.measurementCm.max} cm`;
+        errs[`m_${tid}`] = displayLengthRange(
+          RANGES.measurementCm.min,
+          RANGES.measurementCm.max,
+          lUnit,
+        );
       }
     }
     return { ok: Object.keys(errs).length === 0, errs };
