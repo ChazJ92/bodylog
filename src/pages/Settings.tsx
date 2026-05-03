@@ -34,6 +34,8 @@ export default function Settings() {
 
   const [heightInput, setHeightInput] = useState("");
   const [heightError, setHeightError] = useState<string | null>(null);
+  const [birthYearInput, setBirthYearInput] = useState("");
+  const [birthYearError, setBirthYearError] = useState<string | null>(null);
 
   // Re-seed the input when the persisted profile height changes. Unit
   // toggles are handled by the dedicated conversion effect below so that
@@ -48,6 +50,15 @@ export default function Settings() {
     // lUnit intentionally omitted: see lUnitRef effect below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.heightCm]);
+
+  useEffect(() => {
+    if (profile?.birthYear != null) {
+      setBirthYearInput(String(profile.birthYear));
+    } else {
+      setBirthYearInput("");
+    }
+    setBirthYearError(null);
+  }, [profile?.birthYear]);
 
   const lUnitRef = useRef<LengthUnit>(lUnit);
   useEffect(() => {
@@ -88,6 +99,38 @@ export default function Settings() {
       await updateProfile.run({ heightCm: cm });
     } catch (e) {
       setHeightError(e instanceof Error ? e.message : "Failed to save");
+    }
+  };
+
+  const onBirthYearBlur = async () => {
+    setBirthYearError(null);
+    if (!birthYearInput.trim()) {
+      try {
+        await updateProfile.run({ birthYear: undefined });
+      } catch (e) {
+        setBirthYearError(e instanceof Error ? e.message : "Failed to save");
+      }
+      return;
+    }
+    const y = Number(birthYearInput);
+    if (!Number.isFinite(y) || !Number.isInteger(y)) {
+      setBirthYearError("Enter a whole year (e.g. 1990)");
+      return;
+    }
+    const yi = Math.trunc(y);
+    if (yi < 1900 || yi > 2100) {
+      setBirthYearError("Year must be between 1900 and 2100");
+      return;
+    }
+    const currentYear = new Date().getFullYear();
+    if (yi > currentYear) {
+      setBirthYearError("Birth year cannot be in the future");
+      return;
+    }
+    try {
+      await updateProfile.run({ birthYear: yi });
+    } catch (e) {
+      setBirthYearError(e instanceof Error ? e.message : "Failed to save");
     }
   };
 
@@ -138,6 +181,31 @@ export default function Settings() {
                 </span>
               ) : null;
             })()}
+          </FieldLabel>
+          <FieldLabel
+            label="Birth year"
+            error={birthYearError}
+            className="sm:col-span-2"
+          >
+            <input
+              type="number"
+              inputMode="numeric"
+              step={1}
+              min={1900}
+              max={2100}
+              value={birthYearInput}
+              onChange={(e) => {
+                setBirthYearInput(e.target.value);
+                if (birthYearError) setBirthYearError(null);
+              }}
+              onBlur={onBirthYearBlur}
+              className={inputCls}
+              placeholder="—"
+            />
+            <span className="mt-1 block text-xs text-muted-foreground">
+              Used for age-based estimates on Analysis (e.g. Deurenberg body fat). Leave blank if you
+              prefer not to store it.
+            </span>
           </FieldLabel>
         </div>
       </section>
@@ -354,13 +422,15 @@ function FieldLabel({
   label,
   error,
   children,
+  className,
 }: {
   label: string;
   error?: string | null;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <label className="block">
+    <label className={cn("block", className)}>
       <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </span>
