@@ -331,21 +331,30 @@ function DataPanel() {
       a.download = `ledger-export-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("Exported");
+      toast.success("Backup downloaded");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Export failed");
+      toast.error(e instanceof Error ? e.message : "Could not create backup file.");
     } finally {
       setBusy(false);
     }
   };
 
   const onImport = async (file: File) => {
-    if (!confirm("Import will replace all current data on this device. Continue?")) return;
     setBusy(true);
     try {
       const text = await file.text();
-      await exportImport.importAll(text);
-      toast.success("Imported");
+      const prep = exportImport.tryPrepareImport(text);
+      if (!prep.ok) {
+        toast.error(prep.message);
+        return;
+      }
+      const s = prep.data.summary;
+      const detail =
+        `This backup contains ${s.checkinsRows} check-in(s), ${s.measurementsRows} measurement(s), ${s.photosRows} photo(s), ${s.measurementTypesRows} measurement type row(s), ${s.profileRows} profile row(s), ${s.settingsRows} settings row(s).\n\n` +
+        "Import will DELETE all current data on this device and replace it with this file. You cannot undo this.\n\nContinue?";
+      if (!confirm(detail)) return;
+      await exportImport.importPrepared(prep.data);
+      toast.success("Data restored from backup");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Import failed");
     } finally {
@@ -362,9 +371,9 @@ function DataPanel() {
     setBusy(true);
     try {
       await exportImport.clearAll();
-      toast.success("All data erased");
+      toast.success("Device reset to defaults — profile, units, and built-in types restored.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed");
+      toast.error(e instanceof Error ? e.message : "Could not erase data.");
     } finally {
       setBusy(false);
     }
@@ -374,7 +383,7 @@ function DataPanel() {
     <section className="card-surface space-y-4 p-6">
       <SectionHeader title="Your data" />
       <p className="-mt-2 text-xs text-muted-foreground">
-        All data lives in this browser's IndexedDB. Export to a JSON file as your backup.
+        All data stays in this browser&apos;s IndexedDB. Export a JSON backup before risky changes. Import only runs after the file is validated; a bad file will not erase your data.
       </p>
       <div className="flex flex-wrap gap-2">
         <button
@@ -400,7 +409,7 @@ function DataPanel() {
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) onImport(f);
+            if (f) void onImport(f);
           }}
         />
         <button
