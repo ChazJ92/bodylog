@@ -4,7 +4,13 @@ import { useSettings } from "@/hooks/useSettings";
 import { useProfile } from "@/hooks/useProfile";
 import { useMeasurementsForCheckin } from "@/hooks/useMeasurements";
 import { useAllMeasurementTypes } from "@/hooks/useMeasurementTypes";
-import { toDisplayWeight, toDisplayLength, weightSuffix, lengthSuffix } from "@/lib/units";
+import {
+  altLengthFromCanonical,
+  toDisplayWeight,
+  toDisplayLength,
+  weightSuffix,
+  lengthSuffix,
+} from "@/lib/units";
 import { fmtDate, fmtDelta, fmtNumber } from "@/lib/format";
 import { bmi, bmiCategory } from "@/services/analysisService";
 import { StatCard, SectionHeader, EmptyState } from "@/components/ui-bits";
@@ -127,6 +133,9 @@ export default function Home() {
                         <span className="ml-1 text-xs font-medium text-muted-foreground">
                           {lengthSuffix(lUnit)}
                         </span>
+                      </div>
+                      <div className="mt-0.5 text-[11px] text-muted-foreground">
+                        ≈ {altLengthFromCanonical(m.valueCm, lUnit)}
                       </div>
                     </li>
                   );

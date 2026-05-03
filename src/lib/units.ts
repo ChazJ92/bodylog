@@ -92,3 +92,39 @@ export function convertWeightDisplayValue(
   const kg = fromDisplayWeight(n, from);
   return toDisplayWeight(kg, to).toFixed(digits);
 }
+
+/**
+ * Format a canonical-cm value as a short string in the *opposite* length
+ * unit, used for the small grey "also reads as X" hint shown beneath
+ * primary length displays. cm is shown as integers; inches with one
+ * decimal place because the converted value rarely lands on a whole inch.
+ * Returns the empty string for non-finite input so the caller can drop
+ * the hint cleanly.
+ */
+export function altLengthFromCanonical(
+  cm: number,
+  currentUnit: LengthUnit,
+): string {
+  if (!Number.isFinite(cm)) return "";
+  const altUnit: LengthUnit = currentUnit === "cm" ? "in" : "cm";
+  const v = toDisplayLength(cm, altUnit);
+  const digits = altUnit === "cm" ? 0 : 1;
+  return `${v.toFixed(digits)} ${lengthSuffix(altUnit)}`;
+}
+
+/**
+ * Same idea as `altLengthFromCanonical` but starting from a raw display-
+ * unit input string (e.g. an in-progress form value). Returns null when
+ * the string is empty or not yet a finite number, so the caller can hide
+ * the hint cleanly during partial typing like "" or "1.".
+ */
+export function altLengthFromRaw(
+  raw: string,
+  currentUnit: LengthUnit,
+): string | null {
+  if (!raw.trim()) return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+  const cm = fromDisplayLength(n, currentUnit);
+  return altLengthFromCanonical(cm, currentUnit);
+}

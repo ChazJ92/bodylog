@@ -6,6 +6,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { useActiveMeasurementTypes } from "@/hooks/useMeasurementTypes";
 import { useMeasurementsForCheckin, useUpsertMeasurement } from "@/hooks/useMeasurements";
 import {
+  altLengthFromRaw,
   convertLengthDisplayValue,
   convertWeightDisplayValue,
   displayLengthRange,
@@ -290,22 +291,31 @@ export default function CheckIn() {
           Measurements ({lengthSuffix(lUnit)})
         </h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {sortedTypes.map((t) => (
-            <Field key={t.id} label={t.name} htmlFor={`m_${t.id}`} error={errors[`m_${t.id}`]}>
-              <input
-                id={`m_${t.id}`}
-                type="number"
-                inputMode="decimal"
-                step="0.1"
-                value={form.measurements[t.id] ?? ""}
-                onChange={(e) =>
-                  setForm({ ...form, measurements: { ...form.measurements, [t.id]: e.target.value } })
-                }
-                className={inputCls}
-                placeholder="—"
-              />
-            </Field>
-          ))}
+          {sortedTypes.map((t) => {
+            const raw = form.measurements[t.id] ?? "";
+            const altHint = altLengthFromRaw(raw, lUnit);
+            return (
+              <Field key={t.id} label={t.name} htmlFor={`m_${t.id}`} error={errors[`m_${t.id}`]}>
+                <input
+                  id={`m_${t.id}`}
+                  type="number"
+                  inputMode="decimal"
+                  step="0.1"
+                  value={raw}
+                  onChange={(e) =>
+                    setForm({ ...form, measurements: { ...form.measurements, [t.id]: e.target.value } })
+                  }
+                  className={inputCls}
+                  placeholder="—"
+                />
+                {altHint && (
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    ≈ {altHint}
+                  </span>
+                )}
+              </Field>
+            );
+          })}
         </div>
       </section>
 
